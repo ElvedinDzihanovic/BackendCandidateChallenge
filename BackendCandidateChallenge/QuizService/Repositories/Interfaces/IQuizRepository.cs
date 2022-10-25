@@ -9,6 +9,9 @@ namespace QuizService.Repositories.Interfaces
     {
         public IEnumerable<QuizResponseModel> Get();
         public QuizResponseModel Get(int id);
-
+        public QuizResponseModel.QuestionItem GetQuestion(int id);
+        public object Create(QuizCreateModel quiz);
+        public object CreateTestQuiz(QuizCreateModel quiz);
+        public bool CheckAnswer(int questionId, int answerId);
     }
 }

@@ -16,6 +16,10 @@ public class QuizController : Controller
     private readonly IDbConnection _connection;
     private readonly IQuizRepository _quizRepository;
 
+    /* TODO: In general, we could use the classic "repository - service - controller" approach here
+     * but for simplicity I've decided to create QuizRepository and move some of the logic there. Of course, we shouldn't have
+     * db logic directly in controller, and also Services/Repositories should be in separate class libraries.
+    */
     public QuizController(IDbConnection connection, IQuizRepository quizRepository)
     {
         _connection = connection;
@@ -24,37 +28,38 @@ public class QuizController : Controller
 
     // GET api/quizzes
     [HttpGet]
-    public IEnumerable<QuizResponseModel> Get()
+    public ActionResult<IEnumerable<QuizResponseModel>> Get()
     {
-        try
-        {
-            var result = _quizRepository.Get();
-            return result;
-        }
-        catch (Exception ex)
-        {
-            throw new Exception(ex.Message);
-        }
+        var result = _quizRepository.Get();
+        return Ok(result);
     }
 
     // GET api/quizzes/5
     [HttpGet("{id}")]
-    public object Get(int id)
+    public ActionResult<object> Get(int id)
     {
         var result = _quizRepository.Get(id);
 
         if (result == null)
             return NotFound();
 
-        return result;
+        return Ok(result);
     }
 
     // POST api/quizzes
     [HttpPost]
     public IActionResult Post([FromBody]QuizCreateModel value)
     {
-        var sql = $"INSERT INTO Quiz (Title) VALUES('{value.Title}'); SELECT LAST_INSERT_ROWID();";
-        var id = _connection.ExecuteScalar(sql);
+        var id = _quizRepository.Create(value);
+        return Created($"/api/quizzes/{id}", null);
+    }
+
+    // NOTE: Custom endpoint for quickly creating test quiz with questions and answers
+    // POST api/quizzes/test
+    [HttpPost("test")]
+    public IActionResult PostTestQuiz([FromBody] QuizCreateModel value)
+    {
+        var id = _quizRepository.CreateTestQuiz(value);
         return Created($"/api/quizzes/{id}", null);
     }
 
@@ -78,6 +83,18 @@ public class QuizController : Controller
         if (rowsDeleted == 0)
             return NotFound();
         return NoContent();
+    }
+
+    // GET api/quizzes/5
+    [HttpGet("{id}/questions/{qid}")]
+    public ActionResult<QuizResponseModel.QuestionItem> GetQuestion(int id, int qid)
+    {
+        var result = _quizRepository.GetQuestion(qid);
+
+        if (result == null)
+            return NotFound();
+
+        return Ok(result);
     }
 
     // POST api/quizzes/5/questions
@@ -115,6 +132,16 @@ public class QuizController : Controller
         const string sql = "DELETE FROM Question WHERE Id = @QuestionId";
         _connection.ExecuteScalar(sql, new {QuestionId = qid});
         return NoContent();
+    }
+
+    // NOTE: This endpoint checks if selected answer is correct for the given question
+    [HttpGet]
+    [Route("{id}/questions/{qid}/answers/{aid}/check")]
+    public ActionResult<bool> CheckAnswer(int id, int qid, int aid)
+    {
+        var result = _quizRepository.CheckAnswer(qid, aid);
+
+        return Ok(result);
     }
 
     // POST api/quizzes/5/questions/6/answers
