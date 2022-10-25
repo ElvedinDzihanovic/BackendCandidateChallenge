@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using QuizService.Model;
 using QuizService.Model.Domain;
 using System.Linq;
+using QuizService.Repositories.Interfaces;
+using System;
 
 namespace QuizService.Controllers;
 
@@ -12,67 +14,39 @@ namespace QuizService.Controllers;
 public class QuizController : Controller
 {
     private readonly IDbConnection _connection;
+    private readonly IQuizRepository _quizRepository;
 
-    public QuizController(IDbConnection connection)
+    public QuizController(IDbConnection connection, IQuizRepository quizRepository)
     {
         _connection = connection;
+        _quizRepository = quizRepository;
     }
 
     // GET api/quizzes
     [HttpGet]
     public IEnumerable<QuizResponseModel> Get()
     {
-        const string sql = "SELECT * FROM Quiz;";
-        var quizzes = _connection.Query<Quiz>(sql);
-        return quizzes.Select(quiz =>
-            new QuizResponseModel
-            {
-                Id = quiz.Id,
-                Title = quiz.Title
-            });
+        try
+        {
+            var result = _quizRepository.Get();
+            return result;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception(ex.Message);
+        }
     }
 
     // GET api/quizzes/5
     [HttpGet("{id}")]
     public object Get(int id)
     {
-        const string quizSql = "SELECT * FROM Quiz WHERE Id = @Id;";
-        var quiz = _connection.QuerySingle<Quiz>(quizSql, new {Id = id});
-        if (quiz == null)
+        var result = _quizRepository.Get(id);
+
+        if (result == null)
             return NotFound();
-        const string questionsSql = "SELECT * FROM Question WHERE QuizId = @QuizId;";
-        var questions = _connection.Query<Question>(questionsSql, new {QuizId = id});
-        const string answersSql = "SELECT a.Id, a.Text, a.QuestionId FROM Answer a INNER JOIN Question q ON a.QuestionId = q.Id WHERE q.QuizId = @QuizId;";
-        var answers = _connection.Query<Answer>(answersSql, new {QuizId = id})
-            .Aggregate(new Dictionary<int, IList<Answer>>(), (dict, answer) => {
-                if (!dict.ContainsKey(answer.QuestionId))
-                    dict.Add(answer.QuestionId, new List<Answer>());
-                dict[answer.QuestionId].Add(answer);
-                return dict;
-            });
-        return new QuizResponseModel
-        {
-            Id = quiz.Id,
-            Title = quiz.Title,
-            Questions = questions.Select(question => new QuizResponseModel.QuestionItem
-            {
-                Id = question.Id,
-                Text = question.Text,
-                Answers = answers.ContainsKey(question.Id)
-                    ? answers[question.Id].Select(answer => new QuizResponseModel.AnswerItem
-                    {
-                        Id = answer.Id,
-                        Text = answer.Text
-                    })
-                    : new QuizResponseModel.AnswerItem[0],
-                CorrectAnswerId = question.CorrectAnswerId
-            }),
-            Links = new Dictionary<string, string>
-            {
-                {"self", $"/api/quizzes/{id}"},
-                {"questions", $"/api/quizzes/{id}/questions"}
-            }
-        };
+
+        return result;
     }
 
     // POST api/quizzes
@@ -112,6 +86,12 @@ public class QuizController : Controller
     public IActionResult PostQuestion(int id, [FromBody]QuestionCreateModel value)
     {
         const string sql = "INSERT INTO Question (Text, QuizId) VALUES(@Text, @QuizId); SELECT LAST_INSERT_ROWID();";
+
+        var quiz = _quizRepository.Get(id);
+
+        if (quiz == null)
+            return NotFound();
+        
         var questionId = _connection.ExecuteScalar(sql, new {Text = value.Text, QuizId = id});
         return Created($"/api/quizzes/{id}/questions/{questionId}", null);
     }
