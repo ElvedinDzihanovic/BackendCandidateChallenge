@@ -134,14 +134,17 @@ public class QuizController : Controller
         return NoContent();
     }
 
-    // NOTE: This endpoint checks if selected answer is correct for the given question
+    // NOTE: This endpoint checks if selected answer is correct for the given question and returns number of scored points
     [HttpGet]
     [Route("{id}/questions/{qid}/answers/{aid}/check")]
-    public ActionResult<bool> CheckAnswer(int id, int qid, int aid)
+    public ActionResult<int> CheckAnswer(int id, int qid, int aid)
     {
         var result = _quizRepository.CheckAnswer(qid, aid);
 
-        return Ok(result);
+        // If the answer is correct, player scores 1 point
+        var scoredPoints = result ? 1 : 0;
+
+        return Ok(scoredPoints);
     }
 
     // POST api/quizzes/5/questions/6/answers

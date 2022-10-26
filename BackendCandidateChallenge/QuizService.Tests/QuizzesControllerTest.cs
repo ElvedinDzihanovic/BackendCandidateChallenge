@@ -87,6 +87,13 @@ public class QuizzesControllerTest
     // NOTE: This test could have been done by calling each endpoint individually (create quiz, questions, answers etc.),
     // however I've decided to create a new CREATE test endpoint for creating the initial quiz
     // with questions and correct answers, just to make everything more efficient and readable
+
+    // NOTE 2: I created my own method for checking the correct answer response CheckAnswer(int id, int qid, int aid) which
+    // returns number of scored points.
+    // We could also use PostQuizResponseAsync(QuestionResponse questionResponse, int quizId) method which can be found in
+    // quiz client, it just needs to be implemented. However, implementation would be more or less the same for these two methods
+    // and since I tried to do this in fairly shortly period of time, I decided not to change my initial implementation.
+    // (We could also add Responses table to the database to save the result)
     [Fact]
     public async Task AQuizIsSuccessfulBasedOnNumberOfCorrectAnswers()
     {
@@ -126,14 +133,15 @@ public class QuizzesControllerTest
 
 
             var checkFirstAnswerResponse = await client.GetAsync(checkAnswerEndpoint1);
-            var firstAnswerResult = JsonConvert.DeserializeObject<bool>(await checkFirstAnswerResponse.Content.ReadAsStringAsync());
+            var firstAnswerResult = JsonConvert.DeserializeObject<int>(await checkFirstAnswerResponse.Content.ReadAsStringAsync());
 
             var checkSecondAnswerResponse = await client.GetAsync(checkAnswerEndpoint2);
-            var secondAnswerResult = JsonConvert.DeserializeObject<bool>(await checkSecondAnswerResponse.Content.ReadAsStringAsync());
+            var secondAnswerResult = JsonConvert.DeserializeObject<int>(await checkSecondAnswerResponse.Content.ReadAsStringAsync());
+
+            var totalResult = firstAnswerResult + secondAnswerResult;
 
             // If both answers are correct, the quiz is passed!
-            Assert.True(firstAnswerResult);
-            Assert.True(secondAnswerResult);
+            Assert.Equal(2, totalResult);
         }
     }
 }
