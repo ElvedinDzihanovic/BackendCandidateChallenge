@@ -17,8 +17,12 @@ public class QuizController : Controller
     private readonly IQuizRepository _quizRepository;
 
     /* TODO: In general, we could use the classic "repository - service - controller" approach here
-     * but for simplicity I've decided to create QuizRepository and move some of the logic there. Of course, we shouldn't have
-     * db logic directly in controller, and also Services/Repositories should be in separate class libraries.
+     * but for simplicity I've decided to create just a simple QuizRepository and move some of the logic there. Of course, we shouldn't have
+     * db logic directly in controller, as Services/Repositories should be in separate class libraries.
+     * 
+     * Additionally, I'd prefer to separate quiz logic from questions and answers (have separate controllers,
+     * services etc.).
+     * 
     */
     public QuizController(IDbConnection connection, IQuizRepository quizRepository)
     {
