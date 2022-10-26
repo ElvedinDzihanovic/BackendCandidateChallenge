@@ -10,6 +10,7 @@ This is a simple challenge to be used as part of an interview process for .NET b
 3. I made some changes to architecture and added some additional improvements (swagger documentation and docker file)
 
 ## Running docker
-1. docker build -t quizservice .
-2. docker run -d -p 8080:80 --name quizcontainer quizservice
-3. Open the app in localhost:8080/swagger
+1. In BackendCandidateChallenge\QuizService folder
+2. docker build -t quizservice .
+3. docker run -d -p 8080:80 --name quizcontainer quizservice
+4. Open the app in localhost:8080/swagger
